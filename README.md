@@ -119,6 +119,11 @@ Due to the limited resolution of the trained faces, it is recommended to use a F
 
 Furthermore, HyperLoRA can also provide a good initialization for LoRA training. You can obtain a better ID LoRA with only about 50 steps of finetuning.
 
+## Disclaimer and Licenses
+Our code is under the GPL 3.0 license. You can use, modify, and distribute it, with derivative works also under GPL 3.0. Our models follow the CC BY-NC 4.0 license, allowing non-commercial sharing and adaptation with proper credit. Third-party models like SDXL, CLIP, and InsightFace are subject to their original licenses.
+
+This project aims to advance the field of generative AI. We disclaim any liability for misuse or unauthorized use of the code, models, or related materials. You must comply with all relevant licenses and laws when using this plugin.
+
 ## Citation
 If you find HyperLoRA useful in your research, please kindly cite our paper:
 ```bibtex
