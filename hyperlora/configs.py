@@ -72,9 +72,9 @@ class ResamplerConfig(BaseConfig):
 
 @dataclass
 class HyperLoRAConfig(BaseConfig):
-    image_processor: BaseImageProcessorConfig = BaseImageProcessorConfig()
-    image_encoder: BaseImageEncoderConfig = BaseImageEncoderConfig()
-    resampler: ResamplerConfig = ResamplerConfig()
+    image_processor: BaseImageProcessorConfig = field(default_factory=lambda: BaseImageProcessorConfig())
+    image_encoder: BaseImageEncoderConfig = field(default_factory=lambda: BaseImageEncoderConfig())
+    resampler: ResamplerConfig = field(default_factory=lambda: ResamplerConfig())
 
     encoder_types: List[Literal['clip', 'arcface']] = field(default_factory=lambda: ['clip'])
 
