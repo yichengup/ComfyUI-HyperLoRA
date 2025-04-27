@@ -48,10 +48,13 @@ class HyperLoRA:
 def list_models(model_type):
     full_folder = os.path.join(folder_paths.models_dir, model_type)
     models = []
-    for fn in os.listdir(full_folder):
-        full_path = os.path.join(full_folder, fn)
-        if os.path.isdir(full_path) or os.path.islink(full_path):
-            models.append(fn)
+    if os.path.exists(full_folder):
+        for fn in os.listdir(full_folder):
+            full_path = os.path.join(full_folder, fn)
+            if os.path.isdir(full_path) or os.path.islink(full_path):
+                models.append(fn)
+    if len(models) == 0:
+        models.append('Not found!')
     return models
 
 def face_bbox(landmark: np.ndarray):
@@ -291,6 +294,7 @@ class HyperLoRAIDCondNode:
         l = l * 2.0
         image = image.crop((c_x - l, c_y - l, c_x + l, c_y + l))
         if not hyper_lora.face_analyzer is None:
+            hyper_lora.face_analyzer.det_model.input_size = (640, 640)
             face_list = hyper_lora.face_analyzer.get(cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
             if len(face_list) == 0:
                 raise Exception('No face detected!')
@@ -482,12 +486,20 @@ class HyperLoRAFaceAttrNode:
     def execute(self, hyper_lora: HyperLoRA, images: torch.Tensor):
         images = tensor2images(images)
         face_attrs = []
+        has_face = False
         for image in images:
-            faces = hyper_lora.face_analyzer.get(cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
+            bgr_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            for size in range(640, 128, -128):
+                hyper_lora.face_analyzer.det_model.input_size = (size, size)
+                faces = hyper_lora.face_analyzer.get(bgr_image)
+                if len(faces) > 0:
+                    has_face = True
+                    break
             face_attr = FaceAttrResp(n_face=len(faces), w=image.width, h=image.height, faces=[])
             for face in faces:
                 face_attr.faces.append(FaceAttrInfo(rect=face.bbox, landmarks=face.landmark_2d_106))
             face_attrs.append(face_attr)
+        assert has_face, 'No face detected!'
         return (face_attrs, )
 
 

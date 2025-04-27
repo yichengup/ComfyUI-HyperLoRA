@@ -603,9 +603,9 @@
         "Node name for S&R": "FaceDetailer"
       },
       "widgets_values": [
-        1024,
+        896,
         true,
-        1024,
+        896,
         97030315765072,
         "fixed",
         10,

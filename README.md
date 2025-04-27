@@ -81,6 +81,11 @@ The workflows depend on [ComfyUI_ADV_CLIP_emb](https://github.com/BlenderNeko/Co
 We fixed the random seed in all workflows so that the results can be fully reproduced. All the input images required by these workflows can be found in the ```assets``` folder.
 
 ### Tips
+**IMPORTANT:**
+- Please confirm that all model and config files are placed in correct directories.
+- The text prompt should start with the LoRA trigger words `fcsks fxhks fhyks, ` to enable LoRA.
+- It is recommended to set `stop_at_clip_layer` to `-2` to align with our training config.
+
 HyperLoRA is not compatible with all SDXL base models. We have tested that it is compatible with [LEOSAM's HelloWorld XL 3.0](https://civitai.com/models/43977?modelVersionId=262973), [CyberRealistic XL v1.1](https://civitai.com/models/312530?modelVersionId=395041), and [RealVisXL v4.0](https://civitai.com/models/139562?modelVersionId=344487), but incompatible with [ArienMixXL v4.0](https://civitai.com/models/118913?modelVersionId=322265). Among them, RealVisXL v4.0 may achieve the best results.
 
 <table width="100%" style="text-align: center">
