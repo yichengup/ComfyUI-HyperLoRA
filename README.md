@@ -74,7 +74,7 @@ The workflows depend on [ComfyUI_ADV_CLIP_emb](https://github.com/BlenderNeko/Co
     <td><img src="assets/HyperLoRA-T2I.jpg" /></td>
  </tr>
  <tr>
-    <td style="text-align: right">T2I + FaceDetailer</td>
+    <td style="text-align: right">T2I + FaceDetailer🌟</td>
     <td><a href="assets/HyperLoRA-T2I-FaceDetailer.json">HyperLoRA-T2I-FaceDetailer.json</a></td>
     <td><img src="assets/HyperLoRA-T2I-FaceDetailer.jpg" /></td>
  </tr>
@@ -84,11 +84,18 @@ The workflows depend on [ComfyUI_ADV_CLIP_emb](https://github.com/BlenderNeko/Co
     <td><img src="assets/HyperLoRA-T2I-ControlNet.jpg" /></td>
  </tr>
  <tr>
-    <td style="text-align: right">T2I + InstantID</td>
+    <td style="text-align: right">T2I + InstantID🌟</td>
     <td><a href="assets/HyperLoRA-T2I-InstantID.json">HyperLoRA-T2I-InstantID.json</a></td>
     <td><img src="assets/HyperLoRA-T2I-InstantID.jpg" /></td>
  </tr>
+ <tr>
+    <td style="text-align: right">T2I + ConceptSlider</td>
+    <td><a href="assets/HyperLoRA-T2I-ConceptSlider.json">HyperLoRA-T2I-ConceptSlider.json</a></td>
+    <td><img src="assets/HyperLoRA-T2I-ConceptSlider.jpg" /></td>
+ </tr>
 </table>
+
+*🌟 Recommended workflow*
 
 We fixed the random seed in all workflows so that the results can be fully reproduced. All the input images required by these workflows can be found in the ```assets``` folder.
 
@@ -133,6 +140,8 @@ The LoRA weight are usually around 0.75 to 0.85. If the prompt is very long, you
 </table>
 
 Due to the limited resolution of the trained faces, it is recommended to use a FaceDetailer plugin to repair small faces or use ControlNet to increase stability. In addition, combining HyperLoRA with the ControlNet of InstantID can usually further improve the facial similarity.
+
+When creating a Concept Slider using HyperLoRA, the paired images should ensure that only the edited attribute changes, while other attributes remain fixed (especially the ID and pose). Therefore, the best way is to render an animatable 3D human head.
 
 Furthermore, HyperLoRA can also provide a good initialization for LoRA training. You can obtain a better ID LoRA with only about 50 steps of finetuning.
 
