@@ -503,6 +503,69 @@ class HyperLoRAFaceAttrNode:
         return (face_attrs, )
 
 
+class HyperLoRAUniLoaderNode:
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        cls.CONFIG_NODE = HyperLoRAConfigNode()
+        cls.LOADER_NODE = HyperLoRALoaderNode()
+        return inputs_def(required=[
+            enum_field('image_processor', options=list_models('hyper_lora/clip_processor')),
+            enum_field('image_encoder', options=list_models('hyper_lora/clip_vit')),
+            enum_field('encoder_types', options=[ 'clip', 'arcface', 'clip + arcface' ]),
+            enum_field('face_analyzer', options=list_models('insightface/models')),
+            enum_field('model', options=list_models('hyper_lora/hyper_lora')),
+            enum_field('dtype', options=[ 'fp16', 'bf16', 'fp32' ])
+        ])
+
+    RETURN_TYPES = ('HYPER_LORA', )
+    FUNCTION = 'execute'
+    CATEGORY = 'HyperLoRA'
+
+    def execute(self, image_processor, image_encoder, encoder_types, face_analyzer, model, dtype):
+        config = HyperLoRAUniLoaderNode.CONFIG_NODE.execute(**{
+            'image_processor': image_processor,
+            'image_encoder': image_encoder,
+            'resampler.dim': 1024,
+            'resampler.dim_head': 64,
+            'resampler.heads': 12,
+            'resampler.depth': 4,
+            'resampler.ff_mult': 4,
+            'encoder_types': encoder_types,
+            'face_analyzer': face_analyzer,
+            'id_embed_dim': 512,
+            'num_id_tokens': 16,
+            'hyper_dim': 128,
+            'lora_rank': 8,
+            'has_base_lora': False
+        })[0]
+        return HyperLoRAUniLoaderNode.LOADER_NODE.execute(config, model, dtype)
+
+
+class HyperLoRAUniGenerateIDLoRANode:
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        cls.FACE_ATTR_NODE = HyperLoRAFaceAttrNode()
+        cls.ID_COND_NODE = HyperLoRAIDCondNode()
+        cls.GEN_ID_LORA_NODE = HyperLoRAGenerateIDLoRANode()
+        return inputs_def(required=[
+            custom_field('hyper_lora', type_name='HYPER_LORA'),
+            image_field('images'),
+            bool_field('grayscale', default=False),
+            bool_field('remove_background', default=True)
+        ])
+
+    RETURN_TYPES = ('LORA', )
+    FUNCTION = 'execute'
+    CATEGORY = 'HyperLoRA'
+
+    def execute(self, hyper_lora, images, grayscale, remove_background):
+        face_attrs = HyperLoRAUniGenerateIDLoRANode.FACE_ATTR_NODE.execute(hyper_lora, images)[0]
+        id_conds = HyperLoRAUniGenerateIDLoRANode.ID_COND_NODE.execute(hyper_lora, images, face_attrs, grayscale, remove_background)[0]
+        return HyperLoRAUniGenerateIDLoRANode.GEN_ID_LORA_NODE.execute(hyper_lora, id_conds)
+
+
 HYPER_LORA_CLASS_MAPPINGS = {
     'HyperLoRAConfig': HyperLoRAConfigNode,
     'HyperLoRALoader': HyperLoRALoaderNode,
@@ -511,7 +574,9 @@ HYPER_LORA_CLASS_MAPPINGS = {
     'HyperLoRAGenerateIDLoRA': HyperLoRAGenerateIDLoRANode,
     'HyperLoRAGenerateBaseLoRA': HyperLoRAGenerateBaseLoRANode,
     'HyperLoRAApplyLoRA': HyperLoRAApplyLoRANode,
-    'HyperLoRAFaceAttr': HyperLoRAFaceAttrNode
+    'HyperLoRAFaceAttr': HyperLoRAFaceAttrNode,
+    'HyperLoRAUniLoader': HyperLoRAUniLoaderNode,
+    'HyperLoRAUniGenerateIDLoRA': HyperLoRAUniGenerateIDLoRANode
 }
 
 HYPER_LORA_DISPLAY_NAME_MAPPINGS = {
@@ -522,5 +587,7 @@ HYPER_LORA_DISPLAY_NAME_MAPPINGS = {
     'HyperLoRAGenerateIDLoRA': 'HyperLoRA Generate ID LoRA',
     'HyperLoRAGenerateBaseLoRA': 'HyperLoRA Generate Base LoRA',
     'HyperLoRAApplyLoRA': 'HyperLoRA Apply LoRA',
-    'HyperLoRAFaceAttr': 'HyperLoRA Face Attr'
+    'HyperLoRAFaceAttr': 'HyperLoRA Face Attr',
+    'HyperLoRAUniLoader': 'HyperLoRA Uni Loader',
+    'HyperLoRAUniGenerateIDLoRA': 'HyperLoRA Uni Generate ID LoRA'
 }

@@ -30,8 +30,20 @@ Navigate to your ComfyUI's ```models``` folder and create the following subfolde
 models/
 ├── hyper_lora/
 │   ├── clip_processor/    # Directory for CLIP processor files
+│   │   └── clip_vit_large_14_processor/     # Specific CLIP Processor
+│   │       └── preprocessor_config.json
 │   ├── clip_vit/          # Directory for CLIP ViT model files
+│   │   └── clip_vit_large_14/               # Specific CLIP ViT model
+│   │       ├── config.json
+│   │       └── model.safetensors
 │   └── hyper_lora/        # Directory for HyperLoRA model files
+│       ├── sdxl_hyper_id_lora_v1_edit/      # HyperLoRA for editability
+│       │   ├── hyper_lora_modules.json
+│       │   ├── hyper_lora_modules.safetensors
+│       │   ├── id_projector.safetensors
+│       │   └── resampler.safetensors
+│       └── sdxl_hyper_id_lora_v1_fidelity/  # HyperLoRA for fidelity
+│           └── Same as above
 └── insightface/
     └── models/            # Directory for InsightFace model files
 ```
