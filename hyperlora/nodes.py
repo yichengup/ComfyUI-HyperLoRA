@@ -25,7 +25,7 @@ from comfy.sd import load_lora_for_models
 from dataclasses import dataclass
 from insightface.app import FaceAnalysis
 from PIL import Image, ImageDraw, ImageFilter
-from safetensors.torch import load_file
+from safetensors.torch import load_file, save_file
 from .common import FaceAttrInfo, FaceAttrResp, images2tensor, tensor2images
 from .configs import HyperLoRAConfig
 from .modules import HyperLoRAModule, Resampler, Reshape
@@ -470,6 +470,27 @@ class HyperLoRAApplyLoRANode:
         return (model, )
 
 
+class HyperLoRASaveLoRANode:
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return inputs_def(required=[
+            str_field('filename_prefix', default='lora/id_lora'),
+            custom_field('lora', type_name='LORA')
+        ])
+
+    RETURN_TYPES = ()
+    FUNCTION = 'execute'
+    CATEGORY = 'HyperLoRA'
+    OUTPUT_NODE = True
+
+    def execute(self, filename_prefix, lora):
+        full_output_folder, filename, counter, _, _ = folder_paths.get_save_image_path(
+            filename_prefix, folder_paths.get_output_directory())
+        save_file(lora, os.path.join(full_output_folder, f'{filename}_{counter:05d}_.safetensors'))
+        return (True, )
+
+
 class HyperLoRAFaceAttrNode:
 
     @classmethod
@@ -574,6 +595,7 @@ HYPER_LORA_CLASS_MAPPINGS = {
     'HyperLoRAGenerateIDLoRA': HyperLoRAGenerateIDLoRANode,
     'HyperLoRAGenerateBaseLoRA': HyperLoRAGenerateBaseLoRANode,
     'HyperLoRAApplyLoRA': HyperLoRAApplyLoRANode,
+    'HyperLoRASaveLoRA': HyperLoRASaveLoRANode,
     'HyperLoRAFaceAttr': HyperLoRAFaceAttrNode,
     'HyperLoRAUniLoader': HyperLoRAUniLoaderNode,
     'HyperLoRAUniGenerateIDLoRA': HyperLoRAUniGenerateIDLoRANode
@@ -587,6 +609,7 @@ HYPER_LORA_DISPLAY_NAME_MAPPINGS = {
     'HyperLoRAGenerateIDLoRA': 'HyperLoRA Generate ID LoRA',
     'HyperLoRAGenerateBaseLoRA': 'HyperLoRA Generate Base LoRA',
     'HyperLoRAApplyLoRA': 'HyperLoRA Apply LoRA',
+    'HyperLoRASaveLoRA': 'HyperLoRA Save LoRA',
     'HyperLoRAFaceAttr': 'HyperLoRA Face Attr',
     'HyperLoRAUniLoader': 'HyperLoRA Uni Loader',
     'HyperLoRAUniGenerateIDLoRA': 'HyperLoRA Uni Generate ID LoRA'
