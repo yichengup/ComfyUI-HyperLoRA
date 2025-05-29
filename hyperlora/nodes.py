@@ -30,6 +30,10 @@ from .common import FaceAttrInfo, FaceAttrResp, images2tensor, tensor2images
 from .configs import HyperLoRAConfig
 from .modules import HyperLoRAModule, Resampler, Reshape
 from .node_fields import *
+import requests
+import shutil
+import zipfile
+import tarfile
 
 
 @dataclass
@@ -586,6 +590,41 @@ class HyperLoRAUniGenerateIDLoRANode:
         id_conds = HyperLoRAUniGenerateIDLoRANode.ID_COND_NODE.execute(hyper_lora, images, face_attrs, grayscale, remove_background)[0]
         return HyperLoRAUniGenerateIDLoRANode.GEN_ID_LORA_NODE.execute(hyper_lora, id_conds)
 
+
+# Model download URLs and target paths
+MODEL_DOWNLOADS = [
+    # (URL, local relative path)
+    ("https://huggingface.co/frankjoshua/realvisxlV50_v50Bakedvae/resolve/main/realvisxlV50_v50Bakedvae.safetensors", "models/realvisxlV50_v50Bakedvae.safetensors"),
+    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/config.json", "models/hyper_lora/clip_vit/clip_vit_large_14/config.json"),
+    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/model.safetensors", "models/hyper_lora/clip_vit/clip_vit_large_14/model.safetensors"),
+    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/preprocessor_config.json", "models/hyper_lora/clip_processor/clip_vit_large_14_processor/preprocessor_config.json"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json", "models/hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors", "models/hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors", "models/hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/resampler.safetensors", "models/hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/resampler.safetensors"),
+    # Add fidelity model if needed
+]
+
+def ensure_models_downloaded():
+    for url, local_path in MODEL_DOWNLOADS:
+        abs_path = os.path.join(os.path.dirname(__file__), '..', local_path)
+        abs_path = os.path.abspath(abs_path)
+        if not os.path.exists(abs_path):
+            os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+            print(f"[HyperLoRA] Downloading model: {url} -> {abs_path}")
+            try:
+                with requests.get(url, stream=True) as r:
+                    r.raise_for_status()
+                    with open(abs_path, 'wb') as f:
+                        shutil.copyfileobj(r.raw, f)
+                print(f"[HyperLoRA] Downloaded: {abs_path}")
+            except Exception as e:
+                print(f"[HyperLoRA] Failed to download {url}: {e}")
+        else:
+            print(f"[HyperLoRA] Model already exists: {abs_path}")
+
+# Ensure models are present at import time
+ensure_models_downloaded()
 
 HYPER_LORA_CLASS_MAPPINGS = {
     'HyperLoRAConfig': HyperLoRAConfigNode,
