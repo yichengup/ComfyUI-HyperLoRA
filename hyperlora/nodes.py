@@ -594,7 +594,6 @@ class HyperLoRAUniGenerateIDLoRANode:
 # Model download URLs and target paths
 MODEL_DOWNLOADS = [
     # (URL, local relative path)
-    ("https://huggingface.co/frankjoshua/realvisxlV50_v50Bakedvae/resolve/main/realvisxlV50_v50Bakedvae.safetensors", "realvisxlV50_v50Bakedvae.safetensors"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/config.json", "hyper_lora/clip_vit/clip_vit_large_14/config.json"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/model.safetensors", "hyper_lora/clip_vit/clip_vit_large_14/model.safetensors"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/preprocessor_config.json", "hyper_lora/clip_processor/clip_vit_large_14_processor/preprocessor_config.json"),
