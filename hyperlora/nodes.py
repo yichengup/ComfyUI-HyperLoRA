@@ -594,6 +594,7 @@ class HyperLoRAUniGenerateIDLoRANode:
 # Model download URLs and target paths
 MODEL_DOWNLOADS = [
     # (URL, local relative path)
+    ("https://huggingface.co/frankjoshua/realvisxlV50_v50Bakedvae/resolve/main/realvisxlV50_v50Bakedvae.safetensors", "realvisxlV50_v50Bakedvae.safetensors"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/config.json", "hyper_lora/clip_vit/clip_vit_large_14/config.json"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/model.safetensors", "hyper_lora/clip_vit/clip_vit_large_14/model.safetensors"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/preprocessor_config.json", "hyper_lora/clip_processor/clip_vit_large_14_processor/preprocessor_config.json"),
@@ -605,22 +606,24 @@ MODEL_DOWNLOADS = [
 ]
 
 def ensure_models_downloaded():
+    """确保所需的模型已下载到ComfyUI的标准models目录"""
     for url, local_path in MODEL_DOWNLOADS:
-        abs_path = os.path.join(os.path.dirname(__file__), '..', local_path)
-        abs_path = os.path.abspath(abs_path)
+        # 使用ComfyUI的标准models目录
+        abs_path = os.path.join(folder_paths.models_dir, local_path)
+        
         if not os.path.exists(abs_path):
             os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-            print(f"[HyperLoRA] Downloading model: {url} -> {abs_path}")
+            print(f"[HyperLoRA] 正在下载模型: {url} -> {abs_path}")
             try:
                 with requests.get(url, stream=True) as r:
                     r.raise_for_status()
                     with open(abs_path, 'wb') as f:
                         shutil.copyfileobj(r.raw, f)
-                print(f"[HyperLoRA] Downloaded: {abs_path}")
+                print(f"[HyperLoRA] 已下载: {abs_path}")
             except Exception as e:
-                print(f"[HyperLoRA] Failed to download {url}: {e}")
+                print(f"[HyperLoRA] 下载失败 {url}: {e}")
         else:
-            print(f"[HyperLoRA] Model already exists: {abs_path}")
+            print(f"[HyperLoRA] 模型已存在: {abs_path}")
 
 # Ensure models are present at import time
 ensure_models_downloaded()
