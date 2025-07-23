@@ -36,33 +36,6 @@ import zipfile
 import tarfile
 
 
-def safe_load_json(file_path):
-    """
-    Safely load JSON file with multiple encoding attempts to handle encoding issues.
-    
-    Args:
-        file_path (str): Path to the JSON file
-        
-    Returns:
-        dict: Parsed JSON data
-        
-    Raises:
-        Exception: If file cannot be read with any attempted encoding
-    """
-    encodings_to_try = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']
-    
-    for encoding in encodings_to_try:
-        try:
-            with open(file_path, 'r', encoding=encoding) as f:
-                return json.load(f)
-        except (UnicodeDecodeError, json.JSONDecodeError) as e:
-            if encoding == encodings_to_try[-1]:  # Last encoding attempt
-                raise Exception(f"Failed to read {file_path} with all attempted encodings. Last error: {e}")
-            continue
-    
-    return None  # This should never be reached due to the exception above
-
-
 @dataclass
 class HyperLoRA:
     image_processor = None
@@ -211,9 +184,8 @@ class HyperLoRALoaderNode:
         hyper_lora.hyper_lora_modules = nn.ModuleList()
         hyper_lora_modules_info_file = os.path.join(full_folder, 'hyper_lora_modules.json')
         assert os.path.isfile(hyper_lora_modules_info_file), 'HyperLoRA modules info file not found!'
-        
-        # Use safe JSON loading to handle potential encoding issues
-        hyper_lora_modules_info = safe_load_json(hyper_lora_modules_info_file)
+        with open(hyper_lora_modules_info_file, 'rt') as f:
+            hyper_lora_modules_info = json.load(f)
         hyper_lora.hyper_lora_modules_info = hyper_lora_modules_info
         for module_info in hyper_lora_modules_info.values():
             hyper_lora.hyper_lora_modules.append(HyperLoRAModule(
@@ -622,7 +594,6 @@ class HyperLoRAUniGenerateIDLoRANode:
 # Model download URLs and target paths
 MODEL_DOWNLOADS = [
     # (URL, local relative path)
-    ("https://huggingface.co/frankjoshua/realvisxlV50_v50Bakedvae/resolve/main/realvisxlV50_v50Bakedvae.safetensors", "realvisxlV50_v50Bakedvae.safetensors"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/config.json", "hyper_lora/clip_vit/clip_vit_large_14/config.json"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/model.safetensors", "hyper_lora/clip_vit/clip_vit_large_14/model.safetensors"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/preprocessor_config.json", "hyper_lora/clip_processor/clip_vit_large_14_processor/preprocessor_config.json"),
