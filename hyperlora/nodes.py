@@ -36,6 +36,114 @@ import zipfile
 import tarfile
 
 
+# Model download URLs and target paths
+MODEL_DOWNLOADS = [
+    # (URL, local relative path)
+    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/config.json", "hyper_lora/clip_vit/clip_vit_large_14/config.json"),
+    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/model.safetensors", "hyper_lora/clip_vit/clip_vit_large_14/model.safetensors"),
+    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/preprocessor_config.json", "hyper_lora/clip_processor/clip_vit_large_14_processor/preprocessor_config.json"),
+    # sdxl_hyper_id_lora_v1_edit version
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/resampler.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/resampler.safetensors"),
+    # sdxl_hyper_id_lora_v1_fidelity version
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.json", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.json"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/id_projector.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/id_projector.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/resampler.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/resampler.safetensors"),
+]
+
+
+def safe_load_json(file_path, allow_redownload=True):
+    """
+    安全加载JSON文件，支持多种编码和重新下载机制
+    
+    Args:
+        file_path (str): JSON文件路径
+        allow_redownload (bool): 是否允许重新下载损坏的文件
+        
+    Returns:
+        dict: 解析后的JSON数据
+        
+    Raises:
+        Exception: 如果文件无法读取或重新下载失败
+    """
+    encodings_to_try = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']
+    
+    # 首先尝试读取现有文件
+    for encoding in encodings_to_try:
+        try:
+            with open(file_path, 'r', encoding=encoding) as f:
+                content = f.read()
+                # 检查文件是否看起来像有效的JSON
+                if content.strip().startswith('{') and content.strip().endswith('}'):
+                    return json.loads(content)
+                else:
+                    print(f"[HyperLoRA] 文件 {file_path} 内容格式异常，可能是下载错误")
+                    break
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            if encoding == encodings_to_try[-1]:
+                print(f"[HyperLoRA] 文件 {file_path} 编码错误: {e}")
+                break
+            continue
+    
+    # 如果文件读取失败且允许重新下载，尝试重新下载
+    if allow_redownload:
+        print(f"[HyperLoRA] 尝试重新下载损坏的文件: {file_path}")
+        if redownload_file(file_path):
+            # 重新下载成功，再次尝试读取
+            return safe_load_json(file_path, allow_redownload=False)
+    
+    raise Exception(f"无法读取文件 {file_path}，请检查文件是否完整或重新安装插件")
+
+
+def redownload_file(file_path):
+    """
+    重新下载指定的模型文件
+    
+    Args:
+        file_path (str): 需要重新下载的文件路径
+        
+    Returns:
+        bool: 下载是否成功
+    """
+    # 将绝对路径转换为相对路径
+    models_dir = folder_paths.models_dir
+    if file_path.startswith(models_dir):
+        relative_path = os.path.relpath(file_path, models_dir)
+    else:
+        return False
+    
+    # 在MODEL_DOWNLOADS中查找对应的URL
+    for url, local_path in MODEL_DOWNLOADS:
+        if local_path == relative_path:
+            try:
+                print(f"[HyperLoRA] 正在重新下载: {url}")
+                # 删除损坏的文件
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                
+                # 确保目录存在
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                
+                # 下载文件
+                with requests.get(url, stream=True) as r:
+                    r.raise_for_status()
+                    with open(file_path, 'wb') as f:
+                        shutil.copyfileobj(r.raw, f)
+                
+                print(f"[HyperLoRA] 重新下载完成: {file_path}")
+                return True
+                
+            except Exception as e:
+                print(f"[HyperLoRA] 重新下载失败 {url}: {e}")
+                return False
+    
+    print(f"[HyperLoRA] 未找到文件 {relative_path} 的下载链接")
+    return False
+
+
 @dataclass
 class HyperLoRA:
     image_processor = None
@@ -184,8 +292,9 @@ class HyperLoRALoaderNode:
         hyper_lora.hyper_lora_modules = nn.ModuleList()
         hyper_lora_modules_info_file = os.path.join(full_folder, 'hyper_lora_modules.json')
         assert os.path.isfile(hyper_lora_modules_info_file), 'HyperLoRA modules info file not found!'
-        with open(hyper_lora_modules_info_file, 'rt') as f:
-            hyper_lora_modules_info = json.load(f)
+        
+        # 使用安全的JSON加载函数，支持重新下载损坏的文件
+        hyper_lora_modules_info = safe_load_json(hyper_lora_modules_info_file)
         hyper_lora.hyper_lora_modules_info = hyper_lora_modules_info
         for module_info in hyper_lora_modules_info.values():
             hyper_lora.hyper_lora_modules.append(HyperLoRAModule(
@@ -590,24 +699,6 @@ class HyperLoRAUniGenerateIDLoRANode:
         id_conds = HyperLoRAUniGenerateIDLoRANode.ID_COND_NODE.execute(hyper_lora, images, face_attrs, grayscale, remove_background)[0]
         return HyperLoRAUniGenerateIDLoRANode.GEN_ID_LORA_NODE.execute(hyper_lora, id_conds)
 
-
-# Model download URLs and target paths
-MODEL_DOWNLOADS = [
-    # (URL, local relative path)
-    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/config.json", "hyper_lora/clip_vit/clip_vit_large_14/config.json"),
-    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/model.safetensors", "hyper_lora/clip_vit/clip_vit_large_14/model.safetensors"),
-    ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/preprocessor_config.json", "hyper_lora/clip_processor/clip_vit_large_14_processor/preprocessor_config.json"),
-    # sdxl_hyper_id_lora_v1_edit version
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json"),
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors"),
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors"),
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/resampler.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/resampler.safetensors"),
-    # sdxl_hyper_id_lora_v1_fidelity version
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.json", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.json"),
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.safetensors"),
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/id_projector.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/id_projector.safetensors"),
-    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/resampler.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/resampler.safetensors"),
-]
 
 def ensure_models_downloaded():
     """确保所需的模型已下载到ComfyUI的标准models目录"""
