@@ -127,17 +127,61 @@ def redownload_file(file_path):
                 # 确保目录存在
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
                 
-                # 下载文件
-                with requests.get(url, stream=True) as r:
-                    r.raise_for_status()
-                    with open(file_path, 'wb') as f:
-                        shutil.copyfileobj(r.raw, f)
+                # 添加请求头，模拟浏览器访问
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
                 
-                print(f"[HyperLoRA] 重新下载完成: {file_path}")
-                return True
+                # 下载文件
+                with requests.get(url, stream=True, headers=headers, timeout=30) as r:
+                    r.raise_for_status()
+                    
+                    # 检查响应内容类型
+                    content_type = r.headers.get('content-type', '').lower()
+                    print(f"[HyperLoRA] 下载内容类型: {content_type}")
+                    
+                    # 对于JSON文件，先读取内容验证
+                    if file_path.endswith('.json'):
+                        content = r.text
+                        # 检查是否是有效的JSON内容
+                        if not (content.strip().startswith('{') and content.strip().endswith('}')):
+                            raise Exception(f"下载的内容不是有效的JSON格式: {content[:200]}...")
+                        
+                        # 验证JSON格式
+                        json.loads(content)
+                        
+                        # 写入文件
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(content)
+                    else:
+                        # 对于二进制文件，直接写入
+                        with open(file_path, 'wb') as f:
+                            shutil.copyfileobj(r.raw, f)
+                
+                # 验证下载的文件
+                if os.path.exists(file_path):
+                    file_size = os.path.getsize(file_path)
+                    print(f"[HyperLoRA] 重新下载完成: {file_path} ({file_size} bytes)")
+                    
+                    # 对于JSON文件，再次验证
+                    if file_path.endswith('.json'):
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            json.load(f)  # 确保可以正确解析
+                        print(f"[HyperLoRA] JSON文件验证通过: {file_path}")
+                    
+                    return True
+                else:
+                    raise Exception("文件下载后不存在")
                 
             except Exception as e:
                 print(f"[HyperLoRA] 重新下载失败 {url}: {e}")
+                # 删除可能损坏的文件
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                        print(f"[HyperLoRA] 已删除损坏的文件: {file_path}")
+                    except:
+                        pass
                 return False
     
     print(f"[HyperLoRA] 未找到文件 {relative_path} 的下载链接")
@@ -706,19 +750,89 @@ def ensure_models_downloaded():
         # 使用ComfyUI的标准models目录
         abs_path = os.path.join(folder_paths.models_dir, local_path)
         
-        if not os.path.exists(abs_path):
+        # 检查文件是否存在且有效
+        file_is_valid = False
+        if os.path.exists(abs_path):
+            # 对于JSON文件，验证其格式
+            if abs_path.endswith('.json'):
+                try:
+                    with open(abs_path, 'r', encoding='utf-8') as f:
+                        content = f.read().strip()
+                        if content.startswith('{') and content.endswith('}'):
+                            json.loads(content)  # 验证JSON格式
+                            file_is_valid = True
+                            print(f"[HyperLoRA] JSON文件验证通过: {abs_path}")
+                        else:
+                            print(f"[HyperLoRA] JSON文件格式异常，需要重新下载: {abs_path}")
+                except (UnicodeDecodeError, json.JSONDecodeError, Exception) as e:
+                    print(f"[HyperLoRA] JSON文件损坏: {abs_path}, 错误: {e}")
+            else:
+                # 对于其他文件，检查文件大小
+                file_size = os.path.getsize(abs_path)
+                if file_size > 1024:  # 至少1KB
+                    file_is_valid = True
+                    print(f"[HyperLoRA] 文件已存在: {abs_path} ({file_size} bytes)")
+                else:
+                    print(f"[HyperLoRA] 文件过小，可能损坏: {abs_path} ({file_size} bytes)")
+        
+        # 如果文件不存在或无效，则下载
+        if not file_is_valid:
             os.makedirs(os.path.dirname(abs_path), exist_ok=True)
             print(f"[HyperLoRA] 正在下载模型: {url} -> {abs_path}")
+            
             try:
-                with requests.get(url, stream=True) as r:
+                # 添加请求头，模拟浏览器访问
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+                
+                with requests.get(url, stream=True, headers=headers, timeout=30) as r:
                     r.raise_for_status()
-                    with open(abs_path, 'wb') as f:
-                        shutil.copyfileobj(r.raw, f)
-                print(f"[HyperLoRA] 已下载: {abs_path}")
+                    
+                    # 检查响应内容类型
+                    content_type = r.headers.get('content-type', '').lower()
+                    print(f"[HyperLoRA] 下载内容类型: {content_type}")
+                    
+                    # 对于JSON文件，先读取内容验证
+                    if abs_path.endswith('.json'):
+                        content = r.text
+                        # 检查是否是有效的JSON内容
+                        if not (content.strip().startswith('{') and content.strip().endswith('}')):
+                            raise Exception(f"下载的内容不是有效的JSON格式: {content[:200]}...")
+                        
+                        # 验证JSON格式
+                        json.loads(content)
+                        
+                        # 写入文件
+                        with open(abs_path, 'w', encoding='utf-8') as f:
+                            f.write(content)
+                    else:
+                        # 对于二进制文件，直接写入
+                        with open(abs_path, 'wb') as f:
+                            shutil.copyfileobj(r.raw, f)
+                    
+                    # 验证下载的文件
+                    if os.path.exists(abs_path):
+                        file_size = os.path.getsize(abs_path)
+                        print(f"[HyperLoRA] 下载完成: {abs_path} ({file_size} bytes)")
+                        
+                        # 对于JSON文件，再次验证
+                        if abs_path.endswith('.json'):
+                            with open(abs_path, 'r', encoding='utf-8') as f:
+                                json.load(f)  # 确保可以正确解析
+                            print(f"[HyperLoRA] JSON文件验证通过: {abs_path}")
+                    else:
+                        raise Exception("文件下载后不存在")
+                        
             except Exception as e:
                 print(f"[HyperLoRA] 下载失败 {url}: {e}")
-        else:
-            print(f"[HyperLoRA] 模型已存在: {abs_path}")
+                # 删除可能损坏的文件
+                if os.path.exists(abs_path):
+                    try:
+                        os.remove(abs_path)
+                        print(f"[HyperLoRA] 已删除损坏的文件: {abs_path}")
+                    except:
+                        pass
 
 # Ensure models are present at import time
 ensure_models_downloaded()
