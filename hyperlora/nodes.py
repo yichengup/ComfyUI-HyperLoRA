@@ -593,16 +593,22 @@ class HyperLoRAUniGenerateIDLoRANode:
 
 # Model download URLs and target paths
 MODEL_DOWNLOADS = [
-    # (URL, local relative path)
+# (URL, local relative path)
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/config.json", "hyper_lora/clip_vit/clip_vit_large_14/config.json"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/model.safetensors", "hyper_lora/clip_vit/clip_vit_large_14/model.safetensors"),
     ("https://huggingface.co/tanglup/comfymodels/resolve/main/huper_lora/preprocessor_config.json", "hyper_lora/clip_processor/clip_vit_large_14_processor/preprocessor_config.json"),
+# sdxl_hyper_id_lora_v1_edit version
     ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.json"),
     ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/hyper_lora_modules.safetensors"),
     ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/id_projector.safetensors"),
     ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_edit/resampler.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_edit/resampler.safetensors"),
-    # Add fidelity model if needed
+# sdxl_hyper_id_lora_v1_fidelity version
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.json", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.json"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/hyper_lora_modules.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/id_projector.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/id_projector.safetensors"),
+    ("https://huggingface.co/bytedance-research/HyperLoRA/resolve/main/sdxl_hyper_id_lora_v1_fidelity/resampler.safetensors", "hyper_lora/hyper_lora/sdxl_hyper_id_lora_v1_fidelity/resampler.safetensors"),
 ]
+
 
 def ensure_models_downloaded():
     """确保所需的模型已下载到ComfyUI的标准models目录"""
